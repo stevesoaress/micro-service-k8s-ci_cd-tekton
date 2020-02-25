@@ -83,7 +83,21 @@ spec:
         outputs:
           - name: cluster
             resource: target-cluster
-    - name: pipeline-5-kubectl-deployment
+    - name: pipeline-5-k8s-deployment-validation
+      runAfter: [pipeline-3-va-task]
+      taskRef:
+        name: validate-k8s-deployment-file
+      params:
+        - name: task-pvc
+          value: $(params.pipeline-pvc)
+      resources:          
+        inputs:
+          - name: image
+            resource: app-image
+            from:
+              - pipeline-2-containerize-task
+    - name: pipeline-6-kubectl-deployment
+      runAfter: [pipeline-5-k8s-deployment-validation]
       taskRef:
         name: kubernetes-contextual-execution
       params:

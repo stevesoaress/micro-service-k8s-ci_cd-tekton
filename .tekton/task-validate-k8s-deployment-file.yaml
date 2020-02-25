@@ -1,0 +1,74 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: validate-k8s-deployment-file
+spec:
+  inputs:
+    params:
+      - name: task-pvc
+        description: the output pvc
+      - name: deploymentFile
+        default: deployment.yml
+      - name: imagePropertiesFile
+        description: file containing properties of the image to be scanned
+        default: 'build.properties'
+    resources:
+      - name: image
+        type: image
+  steps:
+    - name: check-deployment-file
+      # tbd: use an image with curl and jq?
+      image: ibmcom/pipeline-base-image
+      workingDir: /artifacts
+      env:
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          set -e -o pipefail
+          if [ ! -f "$(inputs.params.deploymentFile)" ]; then
+            echo "WARN: No deployment file exists. Generating one"
+            # TODO
+            exit 1
+          fi
+      volumeMounts:
+        - mountPath: /artifacts
+          name: task-volume      
+    - name: update-deployment-file
+      # tbd: use an image with curl and jq?
+      image: ibmcom/pipeline-base-image
+      env:
+      workingDir: /artifacts
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          set -e -o pipefail
+          INPUT_IMAGE_TAG=$(echo $(inputs.resources.image.url) |  awk -F: '{print $2}')
+          INPUT_IMAGE_DIGEST=$(inputs.resources.image.digest)
+
+          # Because of https://github.com/tektoncd/pipeline/issues/216 the image digest for input is probably empty
+          # If image digest is empty, then use the imageProperties file to obtain the information
+          if [ -z "$INPUT_IMAGE_DIGEST" ]; then
+            if [ -z "$(inputs.params.imagePropertiesFile)" ]; then
+              echo "No digest found - use only the image url"
+              PIPELINE_IMAGE_URL="$INPUT_IMAGE_URL"
+            else
+              # Look for the digest in the imagePropertiesFile
+              source $(inputs.params.imagePropertiesFile)
+              PIPELINE_IMAGE_URL="$INPUT_IMAGE_URL@$IMAGE_MANIFEST_SHA"
+            fi
+          else
+            PIPELINE_IMAGE_URL="$INPUT_IMAGE_URL@$INPUT_IMAGE_DIGEST"
+          fi
+
+          # inspect the image to ensure it exists
+          echo -e "Details for image: ${PIPELINE_IMAGE_URL}"
+
+          # 
+          cat $(inputs.params.deploymentFile)
+      volumeMounts:
+        - mountPath: /artifacts
+          name: task-volume      
+  volumes:
+    - name: task-volume
+      persistentVolumeClaim:
+        claimName: $(inputs.params.task-pvc)
