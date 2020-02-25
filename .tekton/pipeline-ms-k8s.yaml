@@ -10,6 +10,9 @@ spec:
       description: the git repo
     - name: branch
       description: the branch for the git repo
+    - name: clusterTargetNamespace     
+    - name: deploymentFile
+      default: deployment.yml
   resources:
   - name: app-image
     type: image
@@ -90,6 +93,8 @@ spec:
       params:
         - name: task-pvc
           value: $(params.pipeline-pvc)
+        - name: deploymentFile
+          value: $(params.deploymentFile)
       resources:          
         inputs:
           - name: image
@@ -109,12 +114,19 @@ spec:
           value: /pipelinerun/.tekton-clusters
         - name: script
           value: |
-            echo "** Here is the kubectl version:"
-            kubectl version
-            echo "** Here is the kubectl cluster-info:"
-            kubectl cluster-info
-            echo "** Here are the kubectl namespaces:"
-            kubectl get namespaces
+            set -e -o pipefail
+            echo "CONFIGURING cluster target namespace"
+            if kubectl get namespace $(params.clusterTargetNamespace); then
+              echo -e "Namespace $(params.clusterTargetNamespace) found."
+            else
+              kubectl create namespace $(params.clusterTargetNamespace)
+              echo -e "Namespace $(params.clusterTargetNamespace) created."
+            fi
+            echo "=========================================================="
+            echo "DEPLOYING using manifest"
+            set -x
+            kubectl apply --namespace $(params.clusterTargetNamespace) -f $(params.deploymentFile)
+            set +x
       resources:          
         inputs:
           - name: cluster
