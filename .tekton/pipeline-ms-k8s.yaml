@@ -83,7 +83,7 @@ spec:
         outputs:
           - name: cluster
             resource: target-cluster
-    - name: pipeline-5-kubectl-task
+    - name: pipeline-5-kubectl-deployment
       taskRef:
         name: kubernetes-contextual-execution
       params:
@@ -106,4 +106,4 @@ spec:
           - name: cluster
             resource: target-cluster
             from:
-              - pipeline-4-setup-task
+              - pipeline-4-cluster-setup-task
