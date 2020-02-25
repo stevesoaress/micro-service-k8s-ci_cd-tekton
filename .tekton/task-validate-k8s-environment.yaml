@@ -1,0 +1,110 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: validate-k8s-environment
+spec:
+  inputs:
+    params:
+      - name: task-pvc
+        description: the task pvc - this is the volume valid for the lifetime of the pipelinerun
+      - name: continuous-delivery-context-secret
+        description: name of the configmap containing the continuous delivery pipeline context secrets
+        default: cd-secret
+      - name: task-pvc-mountpath
+        default: /artifacts
+      # As Cluster Pipeline Resources are not properly updated after kubernetes cluster setup
+      # Allow user to specify kubeconfig copy fallback directory provided by fetch-iks-cluster-context task
+      - name: clusterPipelineResourcesDirectory
+        description: directory in which the kubeconfig file(s) for clusterPipelineResources are available
+        default: /workspace
+      - name: namespace
+    resources:
+      - name: cluster
+        type: cluster
+      - name: image
+        type: image
+  steps:
+    - name: execute
+      image: ibmcom/pipeline-base-image
+      workingDir: $(inputs.params.task-pvc-mountpath)
+      env:
+        - name: KUBECONFIG
+          value: $(inputs.params.clusterPipelineResourcesDirectory)/$(inputs.resources.cluster.name)/kubeconfig
+        - name: CLUSTER_NAMESPACE
+          value: $(inputs.params.namespace)          
+        - name: PIPELINE_BLUEMIX_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: $(inputs.params.continuous-delivery-context-secret)
+              key: API_KEY
+              optional: true
+      command: ["/bin/bash", "-c"]
+      args: 
+        - |
+          # Validate KUBECONFIG 
+          if test -f "$KUBECONFIG"; then
+            echo "KUBECONFIG=$KUBECONFIG"
+          else
+            echo "$KUBECONFIG file is not existing. Exiting now..."
+            exit 1
+          fi
+
+          set -e -o pipefail
+          CLUSTER_NAMESPACE=$(params.clusterTargetNamespace)
+          PIPELINE_TOOLCHAIN_ID=$(jq -r '.toolchain_guid' /cd-config/toolchain.json)
+          REGISTRY_URL=$(echo $(inputs.resources.image.url) |  awk -F/ '{print $1}')
+
+          echo "CONFIGURING cluster target namespace"
+          if kubectl get namespace $CLUSTER_NAMESPACE; then
+            echo -e "Namespace $CLUSTER_NAMESPACE found."
+          else
+            kubectl create namespace $CLUSTER_NAMESPACE
+            echo -e "Namespace $CLUSTER_NAMESPACE created."
+          fi
+
+          echo "=========================================================="
+          # Grant access to private image registry from namespace $CLUSTER_NAMESPACE
+          # reference https://cloud.ibm.com/docs/containers?topic=containers-images#other_registry_accounts
+          echo "=========================================================="
+          echo -e "CONFIGURING ACCESS to private image registry from namespace ${CLUSTER_NAMESPACE}"
+          IMAGE_PULL_SECRET_NAME="ibmcloud-toolchain-${PIPELINE_TOOLCHAIN_ID}-${REGISTRY_URL}"
+
+          echo -e "Checking for presence of ${IMAGE_PULL_SECRET_NAME} imagePullSecret for this toolchain"
+          if ! kubectl get secret ${IMAGE_PULL_SECRET_NAME} --namespace ${CLUSTER_NAMESPACE}; then
+            echo -e "${IMAGE_PULL_SECRET_NAME} not found in ${CLUSTER_NAMESPACE}, creating it"
+            # for Container Registry, docker username is 'token' and email does not matter
+            if [ -z "${PIPELINE_BLUEMIX_API_KEY}" ]; then PIPELINE_BLUEMIX_API_KEY=${IBM_CLOUD_API_KEY}; fi #when used outside build-in kube job
+            kubectl --namespace ${CLUSTER_NAMESPACE} create secret docker-registry ${IMAGE_PULL_SECRET_NAME} --docker-server=${REGISTRY_URL} --docker-password=${PIPELINE_BLUEMIX_API_KEY} --docker-username=iamapikey --docker-email=a@b.com
+          else
+            echo -e "Namespace ${CLUSTER_NAMESPACE} already has an imagePullSecret for this toolchain."
+          fi
+          if [ -z "${KUBERNETES_SERVICE_ACCOUNT_NAME}" ]; then KUBERNETES_SERVICE_ACCOUNT_NAME="default" ; fi
+          SERVICE_ACCOUNT=$(kubectl get serviceaccount ${KUBERNETES_SERVICE_ACCOUNT_NAME}  -o json --namespace ${CLUSTER_NAMESPACE} )
+          if ! echo ${SERVICE_ACCOUNT} | jq -e '. | has("imagePullSecrets")' > /dev/null ; then
+            kubectl patch --namespace ${CLUSTER_NAMESPACE} serviceaccount/${KUBERNETES_SERVICE_ACCOUNT_NAME} -p '{"imagePullSecrets":[{"name":"'"${IMAGE_PULL_SECRET_NAME}"'"}]}'
+          else
+            if echo ${SERVICE_ACCOUNT} | jq -e '.imagePullSecrets[] | select(.name=="'"${IMAGE_PULL_SECRET_NAME}"'")' > /dev/null ; then 
+              echo -e "Pull secret already found in ${KUBERNETES_SERVICE_ACCOUNT_NAME} serviceAccount"
+            else
+              echo "Inserting toolchain pull secret into ${KUBERNETES_SERVICE_ACCOUNT_NAME} serviceAccount"
+              kubectl patch --namespace ${CLUSTER_NAMESPACE} serviceaccount/${KUBERNETES_SERVICE_ACCOUNT_NAME} --type='json' -p='[{"op":"add","path":"/imagePullSecrets/-","value":{"name": "'"${IMAGE_PULL_SECRET_NAME}"'"}}]'
+            fi
+          fi
+          echo "${KUBERNETES_SERVICE_ACCOUNT_NAME} serviceAccount:"
+          kubectl get serviceaccount ${KUBERNETES_SERVICE_ACCOUNT_NAME} --namespace ${CLUSTER_NAMESPACE} -o yaml
+          echo -e "Namespace ${CLUSTER_NAMESPACE} authorizing with private image registry using patched ${KUBERNETES_SERVICE_ACCOUNT_NAME} serviceAccount"
+      volumeMounts:
+        - mountPath: $(inputs.params.task-pvc-mountpath)
+          name: task-volume
+        - mountPath: /cd-config
+          name: cd-config-volume
+  volumes:
+    - name: task-volume
+      persistentVolumeClaim:
+        claimName: $(inputs.params.task-pvc)
+    - name: cd-config-volume
+      configMap:
+        name: toolchain
+        items:
+        - key: toolchain.json
+          path: toolchain.json        

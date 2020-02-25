@@ -101,8 +101,29 @@ spec:
             resource: app-image
             from:
               - pipeline-2-containerize-task
-    - name: pipeline-6-kubectl-deployment
-      runAfter: [pipeline-5-k8s-deployment-validation]
+    - name: pipeline-6-kubernetes-environment-check
+      runAfter: [pipeline-4-cluster-setup-task]
+      taskRef:
+        name: validate-k8s-environment
+      params:
+        - name: task-pvc
+          value: $(params.pipeline-pvc)
+        - name: task-pvc-mountpath
+          value: /pipelinerun
+        - name: clusterPipelineResourcesDirectory
+          value: /pipelinerun/.tekton-clusters
+        - name: namespace
+          value: $(params.clusterTargetNamespace)
+      resources:          
+        inputs:
+          - name: cluster
+            resource: target-cluster
+          - name: image
+            resource: app-image
+            from:
+              - pipeline-2-containerize-task
+    - name: pipeline-7-kubectl-deployment
+      runAfter: [pipeline-6-kubernetes-environment-check, pipeline-5-k8s-deployment-validation]
       taskRef:
         name: kubernetes-contextual-execution
       params:
@@ -114,15 +135,6 @@ spec:
           value: /pipelinerun/.tekton-clusters
         - name: script
           value: |
-            set -e -o pipefail
-            echo "CONFIGURING cluster target namespace"
-            if kubectl get namespace $(params.clusterTargetNamespace); then
-              echo -e "Namespace $(params.clusterTargetNamespace) found."
-            else
-              kubectl create namespace $(params.clusterTargetNamespace)
-              echo -e "Namespace $(params.clusterTargetNamespace) created."
-            fi
-            echo "=========================================================="
             echo "DEPLOYING using manifest"
             set -x
             kubectl apply --namespace $(params.clusterTargetNamespace) -f $(params.deploymentFile)
