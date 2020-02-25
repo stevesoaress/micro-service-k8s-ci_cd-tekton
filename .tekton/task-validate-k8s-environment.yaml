@@ -50,6 +50,7 @@ spec:
           fi
 
           set -e -o pipefail
+          echo "=========================================================="
           PIPELINE_TOOLCHAIN_ID=$(jq -r '.toolchain_guid' /cd-config/toolchain.json)
           REGISTRY_URL=$(echo $(inputs.resources.image.url) |  awk -F/ '{print $1}')
 
@@ -61,7 +62,6 @@ spec:
             echo -e "Namespace $CLUSTER_NAMESPACE created."
           fi
 
-          echo "=========================================================="
           # Grant access to private image registry from namespace $CLUSTER_NAMESPACE
           # reference https://cloud.ibm.com/docs/containers?topic=containers-images#other_registry_accounts
           echo "=========================================================="

@@ -139,6 +139,22 @@ spec:
             set -x
             kubectl apply --namespace $(params.clusterTargetNamespace) -f $(params.deploymentFile)
             set +x
+            echo "=========================================================="
+            DEPLOYMENT_DOC_INDEX=$(yq read --doc "*" --tojson $(params.deploymentFile) | jq -r 'to_entries | .[] | select(.value.kind | ascii_downcase=="deployment") | .key')
+            DEPLOYMENT_NAME=$(yq read --doc ${DEPLOYMENT_DOC_INDEX} $(params.deploymentFile) metadata.name)
+            echo -e "CHECKING deployment rollout of ${DEPLOYMENT_NAME}"
+            echo ""
+            set -x
+            if kubectl rollout status deploy/${DEPLOYMENT_NAME} --watch=true --timeout=150s --namespace ${CLUSTER_NAMESPACE}; then
+              STATUS="pass"
+            else
+              STATUS="fail"
+            fi
+            set +x
+            if [ "$STATUS" == "fail" ]; then
+              echo "DEPLOYMENT FAILED"
+              exit 1
+            fi
       resources:          
         inputs:
           - name: cluster
