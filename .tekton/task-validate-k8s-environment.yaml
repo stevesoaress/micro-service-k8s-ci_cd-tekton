@@ -50,7 +50,6 @@ spec:
           fi
 
           set -e -o pipefail
-          CLUSTER_NAMESPACE=$(params.clusterTargetNamespace)
           PIPELINE_TOOLCHAIN_ID=$(jq -r '.toolchain_guid' /cd-config/toolchain.json)
           REGISTRY_URL=$(echo $(inputs.resources.image.url) |  awk -F/ '{print $1}')
 
