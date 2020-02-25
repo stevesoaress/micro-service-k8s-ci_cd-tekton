@@ -87,7 +87,7 @@ spec:
           - name: cluster
             resource: target-cluster
     - name: pipeline-5-k8s-deployment-validation
-      runAfter: [pipeline-3-containerize-task]
+      runAfter: [pipeline-2-containerize-task]
       taskRef:
         name: validate-k8s-deployment-file
       params:
