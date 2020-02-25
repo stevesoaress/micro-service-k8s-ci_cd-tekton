@@ -69,6 +69,8 @@ spec:
             value: $(params.repository)
           - name: branch
             value: $(params.branch)
+          - name: clusterTargetNamespace
+            value: $(params.clusterTargetNamespace)
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: TriggerBinding
