@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
-  name: pipeline-container-registry
+  name: pipeline-ms-k8s
 spec:
   params:
     - name: pipeline-pvc
@@ -13,6 +13,8 @@ spec:
   resources:
   - name: app-image
     type: image
+  - name: target-cluster
+    type: cluster
   tasks:
     - name: pipeline-1-clone-task
       taskRef:
@@ -66,3 +68,42 @@ spec:
             resource: app-image
             from:
               - pipeline-2-containerize-task
+    - name: pipeline-4-cluster-setup-task
+      taskRef:
+        name: fetch-iks-cluster-config
+      params:
+        - name: task-pvc
+          value: $(params.pipeline-pvc)
+        - name: clusterPipelineResourcesDirectoryFallback
+          value: .tekton-clusters
+      resources:          
+        inputs:
+          - name: cluster
+            resource: target-cluster
+        outputs:
+          - name: cluster
+            resource: target-cluster
+    - name: pipeline-5-kubectl-task
+      taskRef:
+        name: kubernetes-contextual-execution
+      params:
+        - name: task-pvc
+          value: $(params.pipeline-pvc)
+        - name: task-pvc-mountpath
+          value: /pipelinerun
+        - name: clusterPipelineResourcesDirectory
+          value: /pipelinerun/.tekton-clusters
+        - name: script
+          value: |
+            echo "** Here is the kubectl version:"
+            kubectl version
+            echo "** Here is the kubectl cluster-info:"
+            kubectl cluster-info
+            echo "** Here are the kubectl namespaces:"
+            kubectl get namespaces
+      resources:          
+        inputs:
+          - name: cluster
+            resource: target-cluster
+            from:
+              - pipeline-4-setup-task

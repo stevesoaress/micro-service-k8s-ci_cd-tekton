@@ -9,6 +9,10 @@ spec:
     - name: branch
       default: master
     - name: triggerEvent
+    - name: clusterName
+      description: the name of the cluster to target
+    - name: clusterTargetNamespace
+      default: prod-tkn
   resourcetemplates:
     # CD secret to provide API_KEY to access toolchain information
     - apiVersion: v1
@@ -28,16 +32,36 @@ spec:
           - name: url
             value: "$(params.registryDomain)/$(params.registryNamespace)/$(params.imageName)"
     - apiVersion: tekton.dev/v1alpha1
+      kind: PipelineResource
+      metadata:
+        name: the-cluster
+      spec:
+        type: cluster
+        params:
+          - name: name
+            value: $(params.clusterName)
+          - name: username
+            value: norealvalueneeded
+          - name: url
+            value: https://no.real.value.needed
+          - name: token
+            value: norealvalueneeded
+          - name: cadata
+            value: norealvalueneeded
+    - apiVersion: tekton.dev/v1alpha1
       kind: PipelineRun
       metadata:
         name: $(params.branch)-$(params.triggerEvent)-$(uid)
       spec:
         pipelineRef:
-          name: pipeline-container-registry
+          name: pipeline-ms-k8s
         resources:
           - name: app-image
             resourceRef:
               name: image-to-build
+          - name: target-cluster
+            resourceRef:
+              name: the-cluster
         params:
           - name: pipeline-pvc
             value: $(params.branch)-$(params.triggerEvent)-$(uid)-pvc
