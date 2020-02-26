@@ -19,7 +19,7 @@ spec:
   - name: target-cluster
     type: cluster
   tasks:
-    - name: pipeline-1-clone-task
+    - name: clone-task
       taskRef:
         name: clone-repo-task
       params:
@@ -29,8 +29,8 @@ spec:
           value: $(params.repository)
         - name: branch
           value: $(params.branch)
-    - name: pipeline-2-containerize-task
-      runAfter: [pipeline-1-clone-task]
+    - name: containerize-task
+      runAfter: [clone-task]
       taskRef:
         name: containerize-task
       params:
@@ -51,7 +51,7 @@ spec:
         outputs:
           - name: builtImage
             resource: app-image
-    - name: pipeline-3-va-task
+    - name: va-task
       taskRef:
         name: vulnerability-advisor-task
       params:
@@ -70,8 +70,8 @@ spec:
           - name: image
             resource: app-image
             from:
-              - pipeline-2-containerize-task
-    - name: pipeline-4-cluster-setup-task
+              - containerize-task
+    - name: cluster-setup-task
       taskRef:
         name: fetch-iks-cluster-config
       params:
@@ -86,8 +86,8 @@ spec:
         outputs:
           - name: cluster
             resource: target-cluster
-    - name: pipeline-5-k8s-deployment-validation
-      runAfter: [pipeline-2-containerize-task]
+    - name: kubernetes-deployment-validation
+      runAfter: [containerize-task]
       taskRef:
         name: validate-k8s-deployment-file
       params:
@@ -100,9 +100,9 @@ spec:
           - name: image
             resource: app-image
             from:
-              - pipeline-2-containerize-task
-    - name: pipeline-6-kubernetes-environment-check
-      runAfter: [pipeline-4-cluster-setup-task]
+              - containerize-task
+    - name: kubernetes-environment-check
+      runAfter: [cluster-setup-task]
       taskRef:
         name: validate-k8s-environment
       params:
@@ -121,9 +121,9 @@ spec:
           - name: image
             resource: app-image
             from:
-              - pipeline-2-containerize-task
-    - name: pipeline-7-kubectl-deployment
-      runAfter: [pipeline-6-kubernetes-environment-check, pipeline-5-k8s-deployment-validation]
+              - containerize-task
+    - name: kubectl-deployment
+      runAfter: [kubernetes-environment-check, kubernetes-deployment-validation]
       taskRef:
         name: kubernetes-contextual-execution
       params:
@@ -160,4 +160,4 @@ spec:
           - name: cluster
             resource: target-cluster
             from:
-              - pipeline-4-cluster-setup-task
+              - cluster-setup-task
