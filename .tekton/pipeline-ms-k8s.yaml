@@ -159,10 +159,8 @@ spec:
               exit 1
             fi
 
+            # Find the cluster information for ingress or workers public ip
             TARGET_CLUSTER=$( yq read $KUBECONFIG clusters[0].name | awk -F/ '{print $1}' )
-            ls -l /pipelinerun/.tekton-clusters
-            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}/${TARGET_CLUSTER}.json
-            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}/${TARGET_CLUSTER}-workers.json
 
             SERVICE_NAME=$(kubectl get services --namespace ${CLUSTER_NAMESPACE} -o json | jq -r ' .items[] | select (.spec.selector.app=="'"${DEPLOYMENT_NAME}"'") | .metadata.name ')
             if [ "$SERVICE_NAME" ]; then
