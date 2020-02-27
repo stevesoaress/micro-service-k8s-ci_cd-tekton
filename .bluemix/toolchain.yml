@@ -87,11 +87,13 @@ services:
           $text: pipeline_pipeline00.yml
         env:
           githubconsolidated01: githubconsolidated01
+          githubconsolidated02: githubconsolidated02
           githubconsolidated03: githubconsolidated03
       label: ms k8s ci-cd
       name: ms k8s ci-cd
       services:
       - githubconsolidated01
+      - githubconsolidated02
       - githubconsolidated03
       type: tekton
       ui_pipeline: false
@@ -101,6 +103,7 @@ template:
   name: Build your own toolchain
   required:
   - githubconsolidated01
+  - githubconsolidated02
   - githubconsolidated03
 toolchain:
   name: tekton-ms-k8s

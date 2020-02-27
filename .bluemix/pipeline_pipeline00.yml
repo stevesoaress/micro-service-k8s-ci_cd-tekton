@@ -47,4 +47,4 @@ triggers:
     push: true
   name: Git Trigger
   type: git
-  url: https://github.com/jauninb/hello-containers.git
+  service: ${githubconsolidated02}
