@@ -79,6 +79,8 @@ spec:
           value: $(params.pipeline-pvc)
         - name: clusterPipelineResourcesDirectoryFallback
           value: .tekton-clusters
+        - name: clusterAndWorkerNodesJsonExport
+          value: .tekton-clusters
       resources:          
         inputs:
           - name: cluster
@@ -155,6 +157,11 @@ spec:
               echo "DEPLOYMENT FAILED"
               exit 1
             fi
+
+            TARGET_CLUSTER=$( yq read $KUBECONFIG clusters[0].name | awk -F/ '{print $1}' )
+            ls -l /pipelinerun/.tekton-clusters
+            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}.json
+            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}-workers.json
       resources:          
         inputs:
           - name: cluster
