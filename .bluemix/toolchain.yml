@@ -89,6 +89,7 @@ services:
           githubconsolidated01: githubconsolidated01
           githubconsolidated02: githubconsolidated02
           githubconsolidated03: githubconsolidated03
+          manualRepository: {{githubconsolidated02.parameters.repo_name}}
       label: ms k8s ci-cd
       name: ms k8s ci-cd
       services:

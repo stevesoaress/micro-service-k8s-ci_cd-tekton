@@ -30,7 +30,7 @@ properties:
   value: my-tekton-built-image
 - name: manualRepository
   type: TEXT
-  value: https://github.com/jauninb/hello-containers
+  value: ${manualRepository}
 - name: registryDomain
   type: TEXT
   value: us.icr.io
