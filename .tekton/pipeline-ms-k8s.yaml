@@ -138,8 +138,9 @@ spec:
         - name: script
           value: |
             echo "DEPLOYING using manifest"
+            CLUSTER_NAMESPACE=$(params.clusterTargetNamespace)
             set -x
-            kubectl apply --namespace $(params.clusterTargetNamespace) -f $(params.deploymentFile)
+            kubectl apply --namespace $CLUSTER_NAMESPACE -f $(params.deploymentFile)
             set +x
             echo "=========================================================="
             DEPLOYMENT_DOC_INDEX=$(yq read --doc "*" --tojson $(params.deploymentFile) | jq -r 'to_entries | .[] | select(.value.kind | ascii_downcase=="deployment") | .key')
@@ -147,7 +148,7 @@ spec:
             echo -e "CHECKING deployment rollout of ${DEPLOYMENT_NAME}"
             echo ""
             set -x
-            if kubectl rollout status deploy/${DEPLOYMENT_NAME} --watch=true --timeout=150s --namespace $(params.clusterTargetNamespace); then
+            if kubectl rollout status deploy/${DEPLOYMENT_NAME} --watch=true --timeout=150s --namespace $CLUSTER_NAMESPACE; then
               STATUS="pass"
             else
               STATUS="fail"
@@ -160,8 +161,17 @@ spec:
 
             TARGET_CLUSTER=$( yq read $KUBECONFIG clusters[0].name | awk -F/ '{print $1}' )
             ls -l /pipelinerun/.tekton-clusters
-            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}.json
-            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}-workers.json
+            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}/${TARGET_CLUSTER}.json
+            cat /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}/${TARGET_CLUSTER}-workers.json
+
+            SERVICE_NAME=$(kubectl get services --namespace ${CLUSTER_NAMESPACE} -o json | jq -r ' .items[] | select (.spec.selector.app=="'"${DEPLOYMENT_NAME}"'") | .metadata.name ')
+            if [ "$SERVICE_NAME" ]; then
+              PORT=$( kubectl get services --namespace ${CLUSTER_NAMESPACE} | grep ${SERVICE_NAME} | sed 's/.*:\([0-9]*\).*/\1/g' )
+              IP_ADDR=$(jq -r '.[0].publicIP' /pipelinerun/.tekton-clusters/${TARGET_CLUSTER}/${TARGET_CLUSTER}-workers.json)
+              echo -e "VIEW THE APPLICATION AT: http://${IP_ADDR}:${PORT}"
+            else
+              echo "No service found for $DEPLOYMENT_NAME"
+            fi
       resources:          
         inputs:
           - name: cluster
