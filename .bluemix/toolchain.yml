@@ -1,0 +1,107 @@
+services:
+  githubconsolidated01:
+    parameters:
+      api_root_url: https://api.github.com
+      authorized: github
+      auto_init: false
+      enable_traceability: false
+      extra_capabilities:
+      - capability_id: git.issues
+        dashboard_url: https://github.com/jauninb/tekton-catalog/issues
+        display_name: Issues
+        enabled: false
+        label: tekton-catalog
+        readme: false
+        tags:
+        - think
+        - code
+      git_id: github
+      has_issues: false
+      label: tekton-catalog
+      legal: false
+      owner_id: jauninb
+      private_repo: false
+      repo_name: tekton-catalog
+      repo_url: https://github.com/jauninb/tekton-catalog.git
+      token_url: https://otc-github-consolidated-broker.us-south.devops.cloud.ibm.com/github/token?git_id=github
+      type: link
+    service_id: githubconsolidated
+  githubconsolidated02:
+    parameters:
+      api_root_url: https://api.github.com
+      authorized: github
+      auto_init: false
+      enable_traceability: false
+      extra_capabilities:
+      - capability_id: git.issues
+        dashboard_url: https://github.com/jauninb/hello-containers/issues
+        display_name: Issues
+        enabled: false
+        label: hello-containers
+        readme: false
+        tags:
+        - think
+        - code
+      git_id: github
+      has_issues: false
+      label: hello-containers
+      legal: false
+      owner_id: jauninb
+      private_repo: false
+      repo_name: hello-containers
+      repo_url: https://github.com/jauninb/hello-containers.git
+      token_url: https://otc-github-consolidated-broker.us-south.devops.cloud.ibm.com/github/token?git_id=github
+      type: link
+    service_id: githubconsolidated
+  githubconsolidated03:
+    parameters:
+      api_root_url: https://api.github.com
+      authorized: github
+      auto_init: false
+      enable_traceability: false
+      extra_capabilities:
+      - capability_id: git.issues
+        dashboard_url: https://github.com/jauninb/micro-service-k8s-ci_cd-tekton/issues
+        display_name: Issues
+        enabled: false
+        label: micro-service-k8s-ci_cd-tekton
+        readme: false
+        tags:
+        - think
+        - code
+      git_id: github
+      has_issues: false
+      label: micro-service-k8s-ci_cd-tekton
+      legal: false
+      owner_id: jauninb
+      private_repo: false
+      repo_name: micro-service-k8s-ci_cd-tekton
+      repo_url: https://github.com/jauninb/micro-service-k8s-ci_cd-tekton.git
+      token_url: https://otc-github-consolidated-broker.us-south.devops.cloud.ibm.com/github/token?git_id=github
+      type: link
+    service_id: githubconsolidated
+  pipeline00:
+    parameters:
+      configuration:
+        content:
+          $text: pipeline_pipeline00.yml
+        env:
+          githubconsolidated01: githubconsolidated01
+          githubconsolidated03: githubconsolidated03
+      label: ms k8s ci-cd
+      name: ms k8s ci-cd
+      services:
+      - githubconsolidated01
+      - githubconsolidated03
+      type: tekton
+      ui_pipeline: false
+    service_id: pipeline
+template:
+  description: tekton-ms-k8s
+  name: Build your own toolchain
+  required:
+  - githubconsolidated01
+  - githubconsolidated03
+toolchain:
+  name: tekton-ms-k8s
+version: 2
