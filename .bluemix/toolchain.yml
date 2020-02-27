@@ -7,7 +7,7 @@ services:
       enable_traceability: false
       extra_capabilities:
       - capability_id: git.issues
-        dashboard_url: https://github.com/jauninb/tekton-catalog/issues
+        dashboard_url: https://github.com/open-toolchain/tekton-catalog/issues
         display_name: Issues
         enabled: false
         label: tekton-catalog
@@ -19,10 +19,10 @@ services:
       has_issues: false
       label: tekton-catalog
       legal: false
-      owner_id: jauninb
+      owner_id: open-toolchain
       private_repo: false
       repo_name: tekton-catalog
-      repo_url: https://github.com/jauninb/tekton-catalog.git
+      repo_url: https://github.com/open-toolchain/tekton-catalog.git
       token_url: https://otc-github-consolidated-broker.us-south.devops.cloud.ibm.com/github/token?git_id=github
       type: link
     service_id: githubconsolidated
@@ -89,7 +89,7 @@ services:
           githubconsolidated01: githubconsolidated01
           githubconsolidated02: githubconsolidated02
           githubconsolidated03: githubconsolidated03
-          manualRepository: '{{services.githubconsolidated02.parameters.repo_name}}'
+          manualRepository: '{{services.githubconsolidated02.parameters.repo_url}}'
       label: ms k8s ci-cd
       name: ms k8s ci-cd
       services:
