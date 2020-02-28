@@ -1,31 +1,4 @@
 services:
-  githubconsolidated01:
-    parameters:
-      api_root_url: https://api.github.com
-      authorized: github
-      auto_init: false
-      enable_traceability: false
-      extra_capabilities:
-      - capability_id: git.issues
-        dashboard_url: https://github.com/open-toolchain/tekton-catalog/issues
-        display_name: Issues
-        enabled: false
-        label: tekton-catalog
-        readme: false
-        tags:
-        - think
-        - code
-      git_id: github
-      has_issues: false
-      label: tekton-catalog
-      legal: false
-      owner_id: open-toolchain
-      private_repo: false
-      repo_name: tekton-catalog
-      repo_url: https://github.com/open-toolchain/tekton-catalog.git
-      token_url: https://otc-github-consolidated-broker.us-south.devops.cloud.ibm.com/github/token?git_id=github
-      type: link
-    service_id: githubconsolidated
   githubconsolidated02:
     parameters:
       api_root_url: https://api.github.com
@@ -86,14 +59,12 @@ services:
         content:
           $text: pipeline_pipeline00.yml
         env:
-          githubconsolidated01: githubconsolidated01
           githubconsolidated02: githubconsolidated02
           githubconsolidated03: githubconsolidated03
           manualRepository: '{{services.githubconsolidated02.parameters.repo_url}}'
       label: ms k8s ci-cd
       name: ms k8s ci-cd
       services:
-      - githubconsolidated01
       - githubconsolidated02
       - githubconsolidated03
       type: tekton
@@ -103,7 +74,6 @@ template:
   description: tekton-ms-k8s
   name: Build your own toolchain
   required:
-  - githubconsolidated01
   - githubconsolidated02
   - githubconsolidated03
 toolchain:
