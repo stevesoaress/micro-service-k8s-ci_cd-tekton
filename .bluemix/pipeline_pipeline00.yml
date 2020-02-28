@@ -1,20 +1,8 @@
 inputs:
 - branch: master
-  path: git
-  type: git
-  service: ${githubconsolidated01}
-- branch: master
-  path: container-registry
-  type: git
-  service: ${githubconsolidated01}
-- branch: master
   path: .tekton
   type: git
   service: ${githubconsolidated03}
-- branch: master
-  path: kubernetes-service
-  type: git
-  service: ${githubconsolidated01}
 properties:
 - name: apikey
   type: SECURE
